@@ -1,4 +1,4 @@
-import 'bootstrap/js/dist/jumbotron';
+import 'bootstrap';
 //import init from './init';
 
 //init();

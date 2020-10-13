@@ -37,6 +37,7 @@
     "webpack-serve": "^3.2.0"
   },
   "dependencies": {
+    "babel-loader": "^8.1.0",
     "bootstrap": "^4.5.2",
     "jquery": "^3.5.1",
     "popper.js": "^1.16.1"
