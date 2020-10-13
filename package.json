@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Project lvl3 'RSS Reader' for Hexlet",
   "private": true,
+  "main": "dist/bundle.js",
   "scripts": {
     "webpack-serve": "webpack-serve",
     "test": "jest"
@@ -12,9 +13,6 @@
     "rss",
     "reader"
   ],
-  "bin": {
-    "rssreader": "dist/bin/rssreader.js"
-  },
   "files": [
     "dist"
   ],
