@@ -3,11 +3,10 @@ const path = require('path');
 
 module.exports = {
   mode: process.env.NODE_ENV || 'development',
-  entry: './src/index.js',
   output: {
-    path: path.join(__dirname, '/dist'),
-    filename: 'bundle.js',
-    publicPath: '/',
+   path: path.join(__dirname, 'dist'),
+   filename: 'main.js',
+   publicPath: '/'
   },
   module: {
     rules: [
@@ -17,6 +16,10 @@ module.exports = {
         use: {
           loader: 'babel-loader',
         },
+      },
+      {
+        test: /\.css$/i,
+        use: ['style-loader', 'css-loader'],
       },
     ],
   },
