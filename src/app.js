@@ -1,106 +1,149 @@
 import onChange from 'on-change';
 import axios from 'axios';
 import * as yup from 'yup';
+import i18next from 'i18next';
 import { renderInput, renderFeed, renderMessage } from './view';
 
-export default () => {
-  const urlInput = document.getElementById('urlInput');
-  const urlSubmit = document.getElementById('urlSubmitButton');
-  let userurl;
+const urlInput = document.getElementById('urlInput');
+const urlSubmit = document.getElementById('urlSubmitButton');
+
+const parse = (xml) => {
+  const domparser = new DOMParser();
+  const dom = domparser.parseFromString(xml.data, 'text/xml');
+
+  const feedTitle = dom.querySelector('channel > title').textContent;
+  const feedDescription = dom.querySelector('channel > description').textContent;
+  const posts = [...dom.getElementsByTagName('item')].map((post) => {
+    const postTitle = post.querySelector('title').textContent;
+    const postLink = post.querySelector('link').textContent;
+    return { postTitle, postLink };
+  });
+
+  return { feedTitle, feedDescription, posts };
+};
+
+const app = () => {
+  urlSubmit.value = i18next.t('button');
 
   const state = {
-    urlValidation: {
-      isValid: '',
-    },
-    message: '',
+    userurl: '',
+    isValid: 'valid',
+    message: 'validated',
     processStatus: '',
+    feedURLs: [],
     feedList: [],
-    posts: [],
   };
 
-  const processStatusActions = {
+  const processStatuses = {
     validated: (watchedState) => {
-      parser();
       renderMessage(watchedState);
+      urlSubmit.disabled = true;
     },
     added: (watchedState) => {
       renderMessage(watchedState);
+      urlSubmit.disabled = false;
     },
     failed: (watchedState) => {
       renderMessage(watchedState);
+      urlSubmit.disabled = false;
     },
   };
 
   const watchedState = onChange(state, (path, value) => {
     switch (path) {
-      case 'urlValidation.isValid':
+      case 'isValid':
         renderInput(value);
         break;
       case 'processStatus':
-        processStatusActions[value](watchedState);
+        processStatuses[value](watchedState);
         break;
       case 'feedList':
-        renderFeed(value, state.posts);
+        renderFeed(value);
         break;
       default:
         break;
     }
   });
 
-  const isDouble = (url) => {
-    const arr = watchedState.feedList.filter((obj) => obj.userurl === url);
-    return arr.length !== 0;
-  };
+  const isDouble = (userurl) => watchedState.feedURLs.includes(userurl);
 
-  const validateURL = () => {
-    userurl = urlInput.value;
-
+  const isUrlValid = (userurl) => {
     const schema = yup.string().url();
 
-    schema
+    return schema
       .isValid(userurl)
+      .then((valid) => valid);
+  };
+
+  urlSubmit.addEventListener('click', () => {
+    watchedState.userurl = urlInput.value;
+
+    isUrlValid(watchedState.userurl)
       .then((valid) => {
         if (!valid) {
-          watchedState.urlValidation.isValid = 'invalid';
-          watchedState.message = 'Sorry, your url is invalid. Please double check.';
-          watchedState.processStatus = 'failed';
-          return;
+          throw i18next.t('invalid');
         }
-
-        if (isDouble(userurl)) {
-          watchedState.urlValidation.isValid = 'invalid';
-          watchedState.message = 'URL already exists ';
-          watchedState.processStatus = 'failed';
-        } else {
-          watchedState.urlValidation.isValid = 'valid';
-          watchedState.processStatus = 'validated';
+      })
+      .then(() => {
+        if (isDouble(watchedState.userurl)) {
+          throw i18next.t('double');
         }
+      })
+      .then(() => {
+        axios.get(`https://cors-anywhere.herokuapp.com/${watchedState.userurl}`)
+          .then((feed) => {
+            const parsedFeed = { ...parse(feed), url: watchedState.userurl };
+            console.log(parsedFeed);
+            watchedState.feedList.push(parsedFeed);
+
+            watchedState.isValid = '';
+            urlInput.value = '';
+            watchedState.message = i18next.t('success');
+            watchedState.processStatus = 'added';
+            urlSubmit.disabled = false;
+            watchedState.feedURLs.push(watchedState.userurl);
+          });
+      })
+      .catch((errorMessage) => {
+        watchedState.message = errorMessage;
+        watchedState.isValid = 'invalid';
+        watchedState.processStatus = 'failed';
       });
-  };
+  });
+};
 
-  const parser = () => {
-    const domparser = new DOMParser();
-    axios.get(`https://cors-anywhere.herokuapp.com/${userurl}`)
-      .then((response) => {
-        const dom = domparser.parseFromString(response.data, 'text/xml');
-        const title = dom.querySelector('channel > title').textContent;
-        const description = dom.querySelector('channel > description').textContent;
-        const feed = { userurl, title, description };
+export default () => {
+  i18next.init({
+    lng: 'en',
+    debug: true,
+    resources: {
+      en: {
+        translation: {
+          success: 'URL was successfully added to your feed. Congrats!',
+          double: 'This URL already exists in your feed',
+          invalid: 'Sorry, your url is invalid.',
+          button: 'Add to your feed',
+        },
+      },
+      ru: {
+        translation: {
+          success: 'URL добавлен в вашу ленту новостей. Поздравляем!',
+          double: 'Этот URL уже есть в вашей ленте новостей',
+          invalid: 'Введен некорректный URL.',
+          button: 'Добавить в вашу ленту',
+        },
+      },
+    },
+  })
+    .then(() => app());
 
-        const posts = dom.getElementsByTagName('item');
-        watchedState.posts = [...posts].map((post) => {
-          const postTitle = post.querySelector('title').textContent;
-          const postLink = post.querySelector('link').textContent;
-          return { postTitle, postLink };
-        });
+  urlSubmit.value = i18next.t('button');
 
-        watchedState.feedList.push(feed);
-        watchedState.urlisValid = '';
-        urlInput.value = '';
-        watchedState.message = 'URL was successfuly added to your feed. Congrats!';
-        watchedState.processStatus = 'added';
-      });
-  };
+  const buttonEN = document.getElementById('en');
+  const buttonRU = document.getElementById('ru');
 
-  urlSubmit.addEventListener('click', validateURL);
+  buttonEN.addEventListener('click', () => i18next.changeLanguage('en'));
+  buttonRU.addEventListener('click', () => i18next.changeLanguage('ru'));
+
+  i18next.on('languageChanged', () => app());
 };

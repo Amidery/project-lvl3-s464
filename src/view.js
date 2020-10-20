@@ -8,22 +8,22 @@ const renderInput = (value) => {
   }
 };
 
-const renderFeed = (feedlist, posts) => {
+const renderFeed = (feedlist) => {
   const lastChannel = feedlist[feedlist.length - 1];
 
   const newchannel = document.createElement('div');
   const channelTitle = document.createElement('h2');
   const channelDescription = document.createElement('p');
 
-  const { title, description } = lastChannel;
-  channelTitle.textContent = title;
-  channelDescription.textContent = description;
+  const { feedTitle, feedDescription } = lastChannel;
+  channelTitle.textContent = feedTitle;
+  channelDescription.textContent = feedDescription;
 
   newchannel.classList.add('d-flex', 'flex-column', 'col-sm-8', 'mt-4');
   newchannel.append(channelTitle);
   newchannel.append(channelDescription);
 
-  posts.map((obj) => {
+  lastChannel.posts.map((obj) => {
     const link = document.createElement('a');
     const { postTitle, postLink } = obj;
     link.setAttribute('href', postLink);
