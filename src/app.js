@@ -78,7 +78,8 @@ const app = () => {
         const currPosts = channel.posts;
         const newPosts = _.differenceBy(updPosts, currPosts, 'postLink');
         if (newPosts.length > 0) {
-          watchedState.feed[channelIndex].posts = [...currPosts, ...newPosts];
+          const reversedPosts = newPosts.reverse();
+          watchedState.feed[channelIndex].posts = [...currPosts, ...reversedPosts];
           watchedState.status = 'updated';
         }
       })
