@@ -4,9 +4,9 @@ const path = require('path');
 module.exports = {
   mode: process.env.NODE_ENV || 'development',
   output: {
-   path: path.join(__dirname, 'dist'),
-   filename: 'main.js',
-   publicPath: '/'
+    path: path.join(__dirname, 'dist'),
+    filename: 'main.js',
+    publicPath: '/',
   },
   module: {
     rules: [

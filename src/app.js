@@ -5,9 +5,6 @@ import * as yup from 'yup';
 import i18next from 'i18next';
 import { renderToggle, renderInput, renderFeed, renderMessage } from './view';
 
-const urlInput = document.getElementById('urlInput');
-const urlSubmit = document.getElementById('urlSubmitButton');
-
 const parse = (xml) => {
   const domparser = new DOMParser();
   const dom = domparser.parseFromString(xml.data, 'text/xml');
@@ -30,7 +27,7 @@ const app = () => {
   const state = {
     lng: 'en',
     userurl: '',
-    isValid: 'valid',
+    isValid: '',
     feed: [],
     message: '',
     status: '',
@@ -60,8 +57,6 @@ const app = () => {
     }
   });
 
-  const isDouble = (userurl) => watchedState.feed.map((channel) => channel.url).includes(userurl);
-
   const isUrlValid = (userurl) => {
     const schema = yup.string().url();
 
@@ -69,6 +64,8 @@ const app = () => {
       .isValid(userurl)
       .then((valid) => valid);
   };
+
+  const isDouble = (userurl) => watchedState.feed.map((channel) => channel.url).includes(userurl);
 
   const updateChannel = (channel) => {
     const channelIndex = watchedState.feed.map((channelToUpdate, index) => (channelToUpdate.url === channel.url ? index : ''))
@@ -102,26 +99,28 @@ const app = () => {
       });
   };
 
+  const submitButton = document.getElementById('submitButton');
+  const input = document.getElementById('urlInput');
   const buttonEN = document.getElementById('en');
   const buttonRU = document.getElementById('ru');
 
   buttonEN.addEventListener('click', () => {
     i18next.changeLanguage('en');
     watchedState.lng = 'en';
-    urlSubmit.value = i18next.t('button');
+    submitButton.value = i18next.t('button');
   });
   buttonRU.addEventListener('click', () => {
     i18next.changeLanguage('ru');
     watchedState.lng = 'ru';
-    urlSubmit.value = i18next.t('button');
+    submitButton.value = i18next.t('button');
   });
 
-  urlSubmit.addEventListener('click', () => {
-    const userurl = urlInput.value;
+  submitButton.addEventListener('click', () => {
+    const userurl = input.value;
 
     isUrlValid(userurl)
       .then((valid) => {
-        urlSubmit.disabled = true;
+        submitButton.disabled = true;
         if (!valid) {
           throw i18next.t('invalid');
         }
@@ -137,15 +136,16 @@ const app = () => {
             const parsedChannel = { ...parse(response), url: userurl };
             watchedState.feed.push(parsedChannel);
 
-            urlInput.value = '';
-            urlSubmit.disabled = false;
+            input.value = '';
+            submitButton.disabled = false;
+            watchedState.isValid = 'valid';
             watchedState.status = 'success';
             watchedState.message = i18next.t('success');
 
             setTimeout(updateChannel, 5000, parsedChannel);
           })
           .catch((error) => {
-            urlSubmit.disabled = false;
+            submitButton.disabled = false;
             watchedState.status = 'failed';
 
             if (error.response) {
@@ -158,7 +158,7 @@ const app = () => {
           });
       })
       .catch((error) => {
-        urlSubmit.disabled = false;
+        submitButton.disabled = false;
         watchedState.status = 'failed';
         watchedState.isValid = 'invalid';
         watchedState.message = error;

@@ -16,12 +16,12 @@ const renderToggle = (value) => {
 };
 
 const renderInput = (value) => {
-  const urlInput = document.getElementById('urlInput');
+  const input = document.getElementById('urlInput');
 
   if (value === 'invalid') {
-    urlInput.classList.add('border-danger');
+    input.classList.add('border-danger');
   } else {
-    urlInput.classList.remove('border-danger');
+    input.classList.remove('border-danger');
   }
 };
 
@@ -39,11 +39,10 @@ const renderMessage = (state) => {
 };
 
 const renderFeed = (feed) => {
-  feed.map((channel) => {
-    console.log(channel);
+  feed.forEach((channel) => {
     const hasChannel = document.getElementById(channel.id);
     if (hasChannel) {
-      channel.posts.map((post) => {
+      channel.posts.forEach((post) => {
         const hasPost = document.getElementById(post.postId);
         if (hasPost === null) {
           const link = document.createElement('a');
@@ -71,7 +70,7 @@ const renderFeed = (feed) => {
     newchannel.id = id;
 
     const channelPosts = document.createElement('div');
-    channel.posts.map((obj) => {
+    channel.posts.forEach((obj) => {
       const link = document.createElement('a');
       const { postTitle, postLink, postId } = obj;
       link.setAttribute('href', postLink);
