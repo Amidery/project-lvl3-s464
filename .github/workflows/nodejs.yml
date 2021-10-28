@@ -38,6 +38,13 @@ jobs:
         # Add environment variables
         env:
           CI: true
-
+          
+      - name: Install dependencies
+        run: 
+            npm install eslint
+            npm install eslint-config-airbnb-base
+            npm install eslint-plugin-import 
+            npm install eslint-plugin-jest
+            
       - name: Run linter
         run: make lint

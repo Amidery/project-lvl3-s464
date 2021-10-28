@@ -3,7 +3,7 @@ import axios from 'axios';
 import _ from 'lodash';
 import * as yup from 'yup';
 import i18next from 'i18next';
-import { parse } from './parser';
+import parse from './parser';
 import { renderToggle, renderInputGroup, renderFeeds, renderMessage, renderPosts } from './view';
 
 const setId = (posts, feedId) => posts.map((post) => ({ ...post, feedId }));
@@ -120,7 +120,7 @@ const app = () => {
 
 export default () => {
   i18next.init({
-    lng: 'en',
+    lng: 'ru',
     debug: true,
     resources: {
       en: {

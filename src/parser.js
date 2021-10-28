@@ -1,6 +1,6 @@
 import _ from 'lodash';
 
-export const parse = (xml) => {
+export default (xml) => {
   const domparser = new DOMParser();
   const dom = domparser.parseFromString(xml.data, 'text/xml');
   const feedTitle = dom.querySelector('channel > title').textContent;
