@@ -1,3 +1,5 @@
+import i18next from 'i18next';
+
 const renderToggle = (value) => {
   const buttonEN = document.getElementById('en');
   const buttonRU = document.getElementById('ru');
@@ -15,83 +17,124 @@ const renderToggle = (value) => {
   }
 };
 
-const renderInput = (value) => {
+const renderInputGroup = (value) => {
+  const submitButton = document.getElementById('submitButton');
   const input = document.getElementById('urlInput');
 
-  if (value === 'invalid') {
+  if (value === 'loading') {
+    submitButton.disabled = true;
+  } else if (value !== 'added') {
     input.classList.add('border-danger');
+    submitButton.disabled = false;
   } else {
+    input.value = '';
     input.classList.remove('border-danger');
+    submitButton.disabled = false;
   }
 };
 
-const renderMessage = (state) => {
+const renderMessage = (messageType) => {
   const message = document.getElementById('message');
-  message.textContent = state.message;
 
-  if (state.status === 'failed') {
+  if (messageType !== 'success') {
     message.classList.remove('text-success', 'bg-white');
     message.classList.add('text-danger', 'bg-white');
   } else {
     message.classList.remove('text-danger', 'bg-white');
     message.classList.add('text-success', 'bg-white');
   }
+
+  message.textContent = `${i18next.t(messageType)}`;
 };
 
-const renderFeed = (feed) => {
-  feed.forEach((channel) => {
-    const hasChannel = document.getElementById(channel.id);
-    if (hasChannel) {
-      channel.posts.forEach((post) => {
-        const hasPost = document.getElementById(post.postId);
-        if (hasPost === null) {
-          const link = document.createElement('a');
-          const { postTitle, postLink, postId } = post;
-          link.setAttribute('href', postLink);
-          link.textContent = postTitle;
-          link.id = postId;
+const renderFeeds = (feeds) => {
+  feeds.forEach((feed) => {
+    const hasFeed = document.getElementById(feed.feedId);
 
-          const currPosts = hasChannel.querySelector('div');
-          currPosts.prepend(link);
-        }
-      });
+    if (hasFeed) {
       return;
     }
 
-    const newchannel = document.createElement('div');
-    newchannel.classList.add('col-sm-8', 'mt-4');
+    const newFeed = document.createElement('div');
+    newFeed.classList.add('col-sm-8', 'mt-4');
 
-    const channelTitle = document.createElement('h2');
-    const channelDescription = document.createElement('p');
+    const newFeedTitle = document.createElement('h2');
+    const newFeedDescription = document.createElement('p');
 
-    const { feedTitle, feedDescription, id } = channel;
-    channelTitle.textContent = feedTitle;
-    channelDescription.textContent = feedDescription;
-    newchannel.id = id;
+    const { feedTitle, feedDescription, feedId } = feed;
+    newFeedTitle.textContent = feedTitle;
+    newFeedDescription.textContent = feedDescription;
+    newFeed.id = feedId;
 
-    const channelPosts = document.createElement('div');
-    channel.posts.forEach((obj) => {
-      const link = document.createElement('a');
-      const { postTitle, postLink, postId } = obj;
-      link.setAttribute('href', postLink);
-      link.textContent = postTitle;
-      link.id = postId;
-      channelPosts.append(link);
-    });
+    newFeed.append(newFeedTitle);
+    newFeed.append(newFeedDescription);
+    const newFeedPosts = document.createElement('div');
+    newFeedPosts.classList.add('d-flex', 'flex-column');
+    newFeed.append(newFeedPosts);
 
-    channelPosts.classList.add('d-flex', 'flex-column');
-    newchannel.append(channelTitle);
-    newchannel.append(channelDescription);
-    newchannel.append(channelPosts);
+    const currentFeeds = document.getElementById('feeds');
+    currentFeeds.prepend(newFeed);
+  });
+};
 
-    const newFeed = document.getElementById('feed');
-    newFeed.prepend(newchannel);
+const renderModal = (button, title, link, description, item) => {
+  button.addEventListener('click', () => {
+    const modal = document.getElementById('modal');
+
+    const modalTitle = modal.querySelector('.modal-title');
+    const modalBodyInput = modal.querySelector('.modal-body');
+    modalTitle.textContent = title;
+    modalBodyInput.textContent = description;
+
+    const readMoreModalbutton = document.getElementById('readMoreModal');
+    const closeModalbutton = document.getElementById('closeModal');
+    readMoreModalbutton.textContent = i18next.t('readMore');
+    readMoreModalbutton.setAttribute('onclick', `location.href='${link}'`);
+    closeModalbutton.textContent = i18next.t('closeModal');
+
+    item.classList.remove('font-weight-bold');
+    item.classList.add('font-weight-normal');
+  });
+};
+
+const renderPosts = (posts) => {
+  posts.forEach((post) => {
+    const hasPost = document.getElementById(post.postId);
+
+    if (hasPost) {
+      return;
+    }
+
+    const link = document.createElement('a');
+    const { postTitle, postLink, postDescription, postId, feedId } = post;
+    link.setAttribute('href', postLink);
+    link.classList.add('font-weight-bold');
+    link.textContent = postTitle;
+    link.id = postId;
+
+    const previewButton = document.createElement('button');
+    previewButton.classList.add('btn', 'btn-primary');
+    previewButton.setAttribute('type', 'button');
+    previewButton.setAttribute('data-toggle', 'modal');
+    previewButton.setAttribute('data-target', '#modal');
+    previewButton.innerText = i18next.t('preview');
+    renderModal(previewButton, postTitle, postLink, postDescription, link);
+
+    const div = document.createElement('div');
+    div.classList.add('d-flex', 'justify-content-between', 'mb-1');
+    div.appendChild(link);
+    div.appendChild(previewButton);
+
+    const feedToUpdate = document.getElementById(feedId);
+    const postsToupdate = feedToUpdate.getElementsByTagName('div')[0];
+    postsToupdate.prepend(div);
   });
 };
 
 export {
   renderToggle,
-  renderInput,
-  renderFeed,
+  renderInputGroup,
+  renderFeeds,
   renderMessage,
+  renderPosts,
 };

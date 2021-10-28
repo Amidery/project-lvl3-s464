@@ -3,33 +3,17 @@ import axios from 'axios';
 import _ from 'lodash';
 import * as yup from 'yup';
 import i18next from 'i18next';
-import { renderToggle, renderInput, renderFeed, renderMessage } from './view';
+import { parse } from './parser';
+import { renderToggle, renderInputGroup, renderFeeds, renderMessage, renderPosts } from './view';
 
-const parse = (xml) => {
-  const domparser = new DOMParser();
-  const dom = domparser.parseFromString(xml.data, 'text/xml');
-
-  const feedTitle = dom.querySelector('channel > title').textContent;
-  const feedDescription = dom.querySelector('channel > description').textContent;
-  const posts = [...dom.getElementsByTagName('item')].map((post) => {
-    const postTitle = post.querySelector('title').textContent;
-    const postLink = post.querySelector('link').textContent;
-    const postId = _.uniqueId();
-    return { postTitle, postLink, postId };
-  });
-
-  const id = _.uniqueId();
-
-  return { feedTitle, feedDescription, posts, id };
-};
+const setId = (posts, feedId) => posts.map((post) => ({ ...post, feedId }));
 
 const app = () => {
   const state = {
-    lng: 'en',
-    userurl: '',
-    isValid: '',
-    feed: [],
-    message: '',
+    lng: 'ru',
+    feeds: [],
+    posts: [],
+    messageType: '',
     status: '',
   };
 
@@ -38,65 +22,41 @@ const app = () => {
       case 'lng':
         renderToggle(value);
         break;
-      case 'isValid':
-        renderInput(value);
+      case 'feeds':
+        renderFeeds(value);
         break;
-      case 'feed':
-        renderFeed(value);
+      case 'posts':
+        renderPosts(value);
         break;
-      case 'message':
-        renderMessage(watchedState);
+      case 'messageType':
+        renderMessage(value);
         break;
       case 'status':
-        if (value === 'updated') {
-          renderFeed(watchedState.feed);
-        }
+        renderInputGroup(value);
         break;
       default:
         break;
     }
   });
 
-  const isUrlValid = (userurl) => {
-    const schema = yup.string().url();
-
-    return schema
-      .isValid(userurl)
-      .then((valid) => valid);
-  };
-
-  const isDouble = (userurl) => watchedState.feed.map((channel) => channel.url).includes(userurl);
-
-  const updateChannel = (channel) => {
-    const channelIndex = watchedState.feed.map((channelToUpdate, index) => (channelToUpdate.url === channel.url ? index : ''))
-      .filter((v) => v !== '');
-
-    axios.get(`https://cors-anywhere.herokuapp.com/${channel.url}`)
+  const updateFeed = (feed) => {
+    axios.get(`https://cors-anywhere.herokuapp.com/${feed.url}`)
       .then((response) => {
-        const updChannel = parse(response);
-        const updPosts = updChannel.posts;
-        const currPosts = channel.posts;
-        const newPosts = _.differenceBy(updPosts, currPosts, 'postLink');
+        const { parsedPosts } = parse(response);
+
+        const newPosts = _.differenceBy(parsedPosts, watchedState.posts, 'postLink');
+
         if (newPosts.length > 0) {
-          const reversedPosts = newPosts.reverse();
-          watchedState.feed[channelIndex].posts = [...currPosts, ...reversedPosts];
+          watchedState.posts.push(...setId(newPosts, feed.feedId));
           watchedState.status = 'updated';
         }
       })
-      .catch((error) => {
-        watchedState.status = 'failed';
-
-        if (error.response) {
-          watchedState.message = `${i18next.t('errorResponseAuto')}${error.response.status}`;
-        } else if (error.request) {
-          watchedState.message = `${i18next.t('errorRequestAuto')}${error.request}`;
-        } else {
-          watchedState.message = `${i18next.t('errorAuto')}${error.message}`;
-        }
+      .catch(() => {
+        watchedState.status = 'updatingFailed';
+        watchedState.messageType = 'errorAuto';
       })
       .then(() => {
-        watchedState.status = '';
-        setTimeout(updateChannel, 5000, watchedState.feed[channelIndex]);
+        setTimeout(updateFeed, 5000, feed);
       });
   };
 
@@ -117,52 +77,43 @@ const app = () => {
   });
 
   submitButton.addEventListener('click', () => {
+    watchedState.status = 'loading';
     const userurl = input.value;
 
-    isUrlValid(userurl)
-      .then((valid) => {
-        submitButton.disabled = true;
-        if (!valid) {
-          throw i18next.t('invalid');
-        }
-      })
-      .then(() => {
-        if (isDouble(userurl)) {
-          throw i18next.t('double');
-        }
-      })
+    const URLvalidation = yup.string()
+      .required('empty')
+      .url('invalidURL')
+      .notOneOf(watchedState.feeds.map((feed) => feed.url), 'double');
+
+    URLvalidation.validate(userurl)
       .then(() => {
         axios.get(`https://cors-anywhere.herokuapp.com/${userurl}`)
           .then((response) => {
-            const parsedChannel = { ...parse(response), url: userurl };
-            watchedState.feed.push(parsedChannel);
+            const { parsedFeed, parsedPosts } = parse(response);
+            const feedId = _.uniqueId();
 
-            input.value = '';
-            submitButton.disabled = false;
-            watchedState.isValid = 'valid';
-            watchedState.status = 'success';
-            watchedState.message = i18next.t('success');
+            const newFeed = { ...parsedFeed, url: userurl, feedId };
 
-            setTimeout(updateChannel, 5000, parsedChannel);
+            watchedState.feeds.push(newFeed);
+            watchedState.posts.push(...setId(parsedPosts, feedId).reverse());
+
+            watchedState.messageType = 'success';
+            watchedState.status = 'added';
+
+            setTimeout(updateFeed, 5000, newFeed);
           })
-          .catch((error) => {
-            submitButton.disabled = false;
-            watchedState.status = 'failed';
-
-            if (error.response) {
-              watchedState.message = `${i18next.t('errorResponse')}${error.response.status}`;
-            } else if (error.request) {
-              watchedState.message = error.request;
+          .catch((err) => {
+            watchedState.status = 'loadingFailed';
+            if (err.message === 'dom.querySelector(...) is null') {
+              watchedState.messageType = 'invalidRSS';
             } else {
-              watchedState.message = error.message;
+              watchedState.messageType = 'error';
             }
           });
       })
-      .catch((error) => {
-        submitButton.disabled = false;
-        watchedState.status = 'failed';
-        watchedState.isValid = 'invalid';
-        watchedState.message = error;
+      .catch((err) => {
+        watchedState.status = 'validationFailed';
+        watchedState.messageType = err.message;
       });
   });
 };
@@ -176,24 +127,30 @@ export default () => {
         translation: {
           success: 'URL was successfully added to your feed. Congrats!',
           double: 'This URL already exists in your feed',
-          invalid: 'Sorry, your url is invalid.',
+          invalidURL: 'Sorry, your url is invalid.',
           button: 'Add to your feed',
-          errorResponse: 'Error: ',
-          errorResponseAuto: 'An unexpected error has occured while trying to autoupdate the feed. Error: ',
-          errorRequestAuto: 'An unexpected error has occured while trying to autoupdate the feed. ',
+          error: 'Network Error',
           errorAuto: 'An unexpected error has occured while trying to autoupdate the feed. ',
+          preview: 'Preview',
+          readMore: 'Read more',
+          closeModal: 'Close',
+          empty: 'The field shoud not be empty',
+          invalidRSS: 'URL doesn\'t have valid RSS',
         },
       },
       ru: {
         translation: {
-          success: 'URL добавлен в вашу ленту новостей. Поздравляем!',
-          double: 'Этот URL уже есть в вашей ленте новостей',
-          invalid: 'Введен некорректный URL.',
+          success: 'RSS успешно загружен',
+          double: 'RSS уже существует',
+          invalidURL: 'Ссылка должна быть валидным URL',
           button: 'Добавить в вашу ленту',
-          errorResponse: 'Ошибка: ',
-          errorResponseAuto: 'Произошла ошибка при обновлении. Ошибка: ',
-          errorRequestAuto: 'Произошла ошибка при обновлении. ',
+          error: 'Ошибка сети',
           errorAuto: 'Произошла ошибка при обновлении. ',
+          preview: 'Просмотр',
+          readMore: 'Читать полностью',
+          closeModal: 'Закрыть',
+          empty: 'Не должно быть пустым',
+          invalidRSS: 'Ресурс не содержит валидный RSS',
         },
       },
     },

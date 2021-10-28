@@ -5,6 +5,21 @@
     <title>RSS reader</title>
   </head>
   <body>
+    <div class="modal fade" id="modal" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalLabel"></h5>
+            <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body"></div>
+          <div class="modal-footer">
+            <button id="readMoreModal" type="button" class="btn btn-primary"></button>
+            <button id="closeModal" type="button" class="btn btn-secondary" data-dismiss="modal"></button>
+          </div>
+        </div>
+      </div>
+    </div>
     <main>
       <div class="jumbotron jumbotron-fluid pb-4 bg-info">
         <div class="container">
@@ -27,11 +42,11 @@
         </div>
       </div>
       <div class="container bg-white">
-        <div class="row justify-content-center" id="feed"></div>
+        <div class="row justify-content-center" id="feeds"></div>
       </div>
     </main>
     <footer class="py-3">
-       <p class="text-center">© 2020</p>
+       <p class="text-center">© 2019-2021</p>
     </footer>
   </body>
 </html>
