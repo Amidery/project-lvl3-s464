@@ -4,6 +4,7 @@
   "description": "Project lvl3 'RSS Reader' for Hexlet",
   "private": true,
   "scripts": {},
+  "main": "src/app.js",
   "keywords": [
     "hexlet",
     "rss",
