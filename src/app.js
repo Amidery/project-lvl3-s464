@@ -40,9 +40,9 @@ const app = () => {
   });
 
   const updateFeed = (feed) => {
-    axios.get(`https://cors-anywhere.herokuapp.com/${feed.url}`)
+    axios.get(`https://hexlet-allorigins.herokuapp.com/get?disableCache=true&url=${feed.url}`)
       .then((response) => {
-        const { parsedPosts } = parse(response);
+        const { parsedPosts } = parse(response.data);
 
         const newPosts = _.differenceBy(parsedPosts, watchedState.posts, 'postLink');
 
@@ -87,9 +87,9 @@ const app = () => {
 
     URLvalidation.validate(userurl)
       .then(() => {
-        axios.get(`https://cors-anywhere.herokuapp.com/${userurl}`)
+        axios.get(`https://hexlet-allorigins.herokuapp.com/get?disableCache=true&url=${userurl}`)
           .then((response) => {
-            const { parsedFeed, parsedPosts } = parse(response);
+            const { parsedFeed, parsedPosts } = parse(response.data);
             const feedId = _.uniqueId();
 
             const newFeed = { ...parsedFeed, url: userurl, feedId };
