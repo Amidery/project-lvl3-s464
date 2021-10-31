@@ -93,8 +93,8 @@ const renderModal = (button, title, link, description, item, i18next) => {
     readMoreModalbutton.setAttribute('onclick', `location.href='${link}'`);
     closeModalbutton.textContent = i18next.t('closeModal');
 
-    item.classList.remove('font-weight-bold');
-    item.classList.add('font-weight-normal');
+    item.classList.remove('font-weight-bold', 'fw-bold');
+    item.classList.add('font-weight-normal', 'fw-normal');
   });
 };
 
@@ -109,7 +109,7 @@ const renderPosts = (posts, i18next) => {
     const link = document.createElement('a');
     const { postTitle, postLink, postDescription, postId, feedId } = post;
     link.setAttribute('href', postLink);
-    link.classList.add('font-weight-bold');
+    link.classList.add('font-weight-bold', 'fw-bold');
     link.textContent = postTitle;
     link.id = postId;
 
