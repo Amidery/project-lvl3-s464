@@ -104,10 +104,10 @@ const app = (i18n) => {
           })
           .catch((err) => {
             watchedState.status = 'loadingFailed';
-            if (err.message === 'dom.querySelector(...) is null') {
-              watchedState.messageType = 'invalidRSS';
-            } else {
+            if (err.response || err.request) {
               watchedState.messageType = 'error';
+            } else {
+              watchedState.messageType = 'invalidRSS';
             }
           });
       })
