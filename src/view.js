@@ -20,13 +20,16 @@ const renderInputGroup = (value) => {
   const input = document.getElementById('urlInput');
 
   if (value === 'loading') {
+    input.setAttribute('readonly', true);
     submitButton.disabled = true;
   } else if (value !== 'added') {
     input.classList.add('border-danger');
+    input.removeAttribute('readonly');
     submitButton.disabled = false;
   } else {
     input.value = '';
     input.classList.remove('border-danger');
+    input.removeAttribute('readonly');
     submitButton.disabled = false;
   }
 };
