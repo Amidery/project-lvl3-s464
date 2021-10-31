@@ -118,7 +118,8 @@ const renderPosts = (posts, i18next) => {
     previewButton.setAttribute('type', 'button');
     previewButton.setAttribute('data-toggle', 'modal');
     previewButton.setAttribute('data-target', '#modal');
-    previewButton.innerText = i18next.t('preview');
+    previewButton.setAttribute('aria-label', '');
+    previewButton.textContent = i18next.t('preview');
     renderModal(previewButton, postTitle, postLink, postDescription, link, i18next);
 
     const div = document.createElement('div');
