@@ -8,7 +8,7 @@ import { renderToggle, renderInputGroup, renderFeeds, renderMessage, renderPosts
 
 const setId = (posts, feedId) => posts.map((post) => ({ ...post, feedId }));
 
-const app = () => {
+const app = (i18n) => {
   const state = {
     lng: 'ru',
     feeds: [],
@@ -26,10 +26,10 @@ const app = () => {
         renderFeeds(value);
         break;
       case 'posts':
-        renderPosts(value);
+        renderPosts(value, i18n);
         break;
       case 'messageType':
-        renderMessage(value);
+        renderMessage(value, i18n);
         break;
       case 'status':
         renderInputGroup(value);
@@ -66,14 +66,14 @@ const app = () => {
   const buttonRU = document.getElementById('ru');
 
   buttonEN.addEventListener('click', () => {
-    i18next.changeLanguage('en');
+    i18n.changeLanguage('en');
     watchedState.lng = 'en';
-    submitButton.value = i18next.t('button');
+    submitButton.value = i18n.t('button');
   });
   buttonRU.addEventListener('click', () => {
-    i18next.changeLanguage('ru');
+    i18n.changeLanguage('ru');
     watchedState.lng = 'ru';
-    submitButton.value = i18next.t('button');
+    submitButton.value = i18n.t('button');
   });
 
   submitButton.addEventListener('click', () => {
@@ -119,7 +119,9 @@ const app = () => {
 };
 
 export default () => {
-  i18next.init({
+  const i18nextInstance = i18next.createInstance();
+
+  i18nextInstance.init({
     lng: 'ru',
     debug: true,
     resources: {
@@ -155,5 +157,5 @@ export default () => {
       },
     },
   })
-    .then(() => app());
+    .then(() => app(i18nextInstance));
 };

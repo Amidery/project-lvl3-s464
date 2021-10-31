@@ -1,5 +1,3 @@
-import i18next from 'i18next';
-
 const renderToggle = (value) => {
   const buttonEN = document.getElementById('en');
   const buttonRU = document.getElementById('ru');
@@ -33,7 +31,7 @@ const renderInputGroup = (value) => {
   }
 };
 
-const renderMessage = (messageType) => {
+const renderMessage = (messageType, i18next) => {
   const message = document.getElementById('message');
 
   if (messageType !== 'success') {
@@ -77,7 +75,7 @@ const renderFeeds = (feeds) => {
   });
 };
 
-const renderModal = (button, title, link, description, item) => {
+const renderModal = (button, title, link, description, item, i18next) => {
   button.addEventListener('click', () => {
     const modal = document.getElementById('modal');
 
@@ -97,7 +95,7 @@ const renderModal = (button, title, link, description, item) => {
   });
 };
 
-const renderPosts = (posts) => {
+const renderPosts = (posts, i18next) => {
   posts.forEach((post) => {
     const hasPost = document.getElementById(post.postId);
 
@@ -118,7 +116,7 @@ const renderPosts = (posts) => {
     previewButton.setAttribute('data-toggle', 'modal');
     previewButton.setAttribute('data-target', '#modal');
     previewButton.innerText = i18next.t('preview');
-    renderModal(previewButton, postTitle, postLink, postDescription, link);
+    renderModal(previewButton, postTitle, postLink, postDescription, link, i18next);
 
     const div = document.createElement('div');
     div.classList.add('d-flex', 'justify-content-between', 'mb-1');
