@@ -4,7 +4,13 @@ import _ from 'lodash';
 import * as yup from 'yup';
 import i18next from 'i18next';
 import parse from './parser';
-import { renderToggle, renderInputGroup, renderFeeds, renderMessage, renderPosts } from './view';
+import {
+  renderToggle,
+  renderInputGroup,
+  renderFeeds,
+  renderMessage,
+  renderPosts,
+} from './view';
 
 const setId = (posts, feedId) => posts.map((post) => ({ ...post, feedId }));
 

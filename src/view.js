@@ -107,7 +107,14 @@ const renderPosts = (posts, i18next) => {
     }
 
     const link = document.createElement('a');
-    const { postTitle, postLink, postDescription, postId, feedId } = post;
+    const {
+      postTitle,
+      postLink,
+      postDescription,
+      postId,
+      feedId,
+    } = post;
+
     link.setAttribute('href', postLink);
     link.classList.add('font-weight-bold', 'fw-bold');
     link.textContent = postTitle;
