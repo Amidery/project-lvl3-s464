@@ -31,10 +31,10 @@
             <div class="col-sm-8">
               <h1 class="display-4">RSS Reader</h1>
               <p class="lead">It helps you keep your feed in order as easy as it can be!</p>
-              <div class="input-group mb-3">
-                <input type="text" class="form-control" placeholder="" aria-label="url" aria-describedby="basic-addon2" id="urlInput">
+              <form class="input-group mb-3" id="form">
+                <input type="text" class="form-control" placeholder="" aria-label="url" aria-describedby="basic-addon2" id="urlInput" name="url">
                 <input class="btn btn-primary rounded-right bg-dark text-white" type="submit" value="Добавить в вашу ленту" id="submitButton" aria-label="add">
-              </div>
+              </form>
               <p>Example: https://ru.hexlet.io/lessons.rss</p>
               <p id="message"></p>
             </div>

@@ -1,7 +1,4 @@
-const renderToggle = (value) => {
-  const buttonEN = document.getElementById('en');
-  const buttonRU = document.getElementById('ru');
-
+const renderToggle = (value, buttonEN, buttonRU) => {
   if (value === 'ru') {
     buttonRU.classList.remove('btn-secondary');
     buttonRU.classList.add('btn-warning');
@@ -15,47 +12,40 @@ const renderToggle = (value) => {
   }
 };
 
-const renderInputGroup = (value) => {
-  const submitButton = document.getElementById('submitButton');
-  const input = document.getElementById('urlInput');
-
-  if (value === 'loading') {
+const renderInputGroup = (value, submitButton, input) => {
+  if (value === 'loading' || value === 'validationOK') {
     input.setAttribute('readonly', true);
-    submitButton.disabled = true;
-  } else if (value !== 'added') {
-    input.classList.add('border-danger');
-    input.removeAttribute('readonly');
-    submitButton.disabled = false;
-  } else {
-    input.value = '';
+    submitButton.setAttribute('disabled', true);
+  } else if (value === 'loaded' || value === 'updated') {
+    input.value = ''; /* eslint no-param-reassign: "error" */
     input.classList.remove('border-danger');
     input.removeAttribute('readonly');
-    submitButton.disabled = false;
+    submitButton.removeAttribute('disabled');
+  } else if (value !== null) {
+    input.classList.add('border-danger');
+    input.removeAttribute('readonly');
+    submitButton.removeAttribute('disabled');
   }
 };
 
-const renderMessage = (messageType, i18next) => {
+const renderMessage = (state, i18next) => {
   const message = document.getElementById('message');
+  message.textContent = `${i18next.t(state.messageType)}`;
 
-  if (messageType !== 'success') {
-    message.classList.remove('text-success', 'bg-white');
-    message.classList.add('text-danger', 'bg-white');
-  } else {
+  if (state.loadingStatus !== 'loadingFailed' && state.validationStatus !== 'validationFailed' && state.loadingStatus !== 'updatingFailed') {
     message.classList.remove('text-danger', 'bg-white');
     message.classList.add('text-success', 'bg-white');
+  } else {
+    message.classList.remove('text-success', 'bg-white');
+    message.classList.add('text-danger', 'bg-white');
   }
-
-  message.textContent = `${i18next.t(messageType)}`;
 };
 
 const renderFeeds = (feeds) => {
+  const feedsContainer = document.getElementById('feeds');
+  feedsContainer.innerHTML = '';
+
   feeds.forEach((feed) => {
-    const hasFeed = document.getElementById(feed.feedId);
-
-    if (hasFeed) {
-      return;
-    }
-
     const newFeed = document.createElement('div');
     newFeed.classList.add('col-sm-8', 'mt-4');
 
@@ -66,59 +56,58 @@ const renderFeeds = (feeds) => {
     newFeedTitle.textContent = feedTitle;
     newFeedDescription.textContent = feedDescription;
     newFeed.id = feedId;
-
     newFeed.append(newFeedTitle);
     newFeed.append(newFeedDescription);
+
     const newFeedPosts = document.createElement('div');
     newFeedPosts.classList.add('d-flex', 'flex-column');
+    newFeedPosts.setAttribute('id', 'posts');
     newFeed.append(newFeedPosts);
 
-    const currentFeeds = document.getElementById('feeds');
-    currentFeeds.prepend(newFeed);
+    feedsContainer.prepend(newFeed);
   });
 };
 
-const renderModal = (button, title, link, description, item, i18next) => {
-  button.addEventListener('click', () => {
-    const modal = document.getElementById('modal');
+const renderModal = (post, i18next) => {
+  const modal = document.getElementById('modal');
 
-    const modalTitle = modal.querySelector('.modal-title');
-    const modalBodyInput = modal.querySelector('.modal-body');
-    modalTitle.textContent = title;
-    modalBodyInput.textContent = description;
+  const modalTitle = modal.querySelector('.modal-title');
+  const modalBodyInput = modal.querySelector('.modal-body');
+  modalTitle.textContent = post.title;
+  modalBodyInput.textContent = post.description;
 
-    const readMoreModalbutton = document.getElementById('readMoreModal');
-    const closeModalbutton = document.getElementById('closeModal');
-    readMoreModalbutton.textContent = i18next.t('readMore');
-    readMoreModalbutton.setAttribute('onclick', `location.href='${link}'`);
-    closeModalbutton.textContent = i18next.t('closeModal');
-
-    item.classList.remove('font-weight-bold', 'fw-bold');
-    item.classList.add('font-weight-normal', 'fw-normal');
-  });
+  const readMoreModalbutton = document.getElementById('readMoreModal');
+  const closeModalbutton = document.getElementById('closeModal');
+  readMoreModalbutton.textContent = i18next.t('readMore');
+  readMoreModalbutton.setAttribute('onclick', `location.href='${post.link}'`);
+  closeModalbutton.textContent = i18next.t('closeModal');
 };
 
 const renderPosts = (posts, i18next) => {
+  const postsLists = document.querySelectorAll('#posts');
+  postsLists.forEach((list) => { list.innerHTML = ''; });
+
   posts.forEach((post) => {
-    const hasPost = document.getElementById(post.postId);
-
-    if (hasPost) {
-      return;
-    }
-
-    const link = document.createElement('a');
+    const newPost = document.createElement('a');
     const {
-      postTitle,
-      postLink,
-      postDescription,
+      title,
+      link,
       postId,
+      status,
       feedId,
     } = post;
 
-    link.setAttribute('href', postLink);
-    link.classList.add('font-weight-bold', 'fw-bold');
-    link.textContent = postTitle;
-    link.id = postId;
+    newPost.setAttribute('href', link);
+
+    if (status === 'new') {
+      newPost.classList.add('font-weight-bold', 'fw-bold');
+    } else {
+      newPost.classList.remove('font-weight-bold', 'fw-bold');
+      newPost.classList.add('font-weight-normal', 'fw-normal');
+    }
+
+    newPost.textContent = title;
+    newPost.id = postId;
 
     const previewButton = document.createElement('button');
     previewButton.classList.add('btn', 'btn-primary');
@@ -127,16 +116,15 @@ const renderPosts = (posts, i18next) => {
     previewButton.setAttribute('data-target', '#modal');
     previewButton.setAttribute('aria-label', '');
     previewButton.textContent = i18next.t('preview');
-    renderModal(previewButton, postTitle, postLink, postDescription, link, i18next);
 
     const div = document.createElement('div');
     div.classList.add('d-flex', 'justify-content-between', 'mb-1');
-    div.appendChild(link);
+    div.appendChild(newPost);
     div.appendChild(previewButton);
 
     const feedToUpdate = document.getElementById(feedId);
-    const postsToupdate = feedToUpdate.getElementsByTagName('div')[0];
-    postsToupdate.prepend(div);
+    const postsToUpdate = feedToUpdate.getElementsByTagName('div')[0];
+    postsToUpdate.prepend(div);
   });
 };
 
@@ -146,4 +134,5 @@ export {
   renderFeeds,
   renderMessage,
   renderPosts,
+  renderModal,
 };

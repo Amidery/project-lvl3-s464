@@ -10,9 +10,30 @@ import {
   renderFeeds,
   renderMessage,
   renderPosts,
+  renderModal,
 } from './view';
 
-const setId = (posts, feedId) => posts.map((post) => ({ ...post, feedId }));
+const setId = (posts, feedId) => posts.map((post) => {
+  const postId = _.uniqueId();
+  return { ...post, postId, feedId };
+});
+
+const setPostStatus = (posts) => posts.map((post) => ({ ...post, status: 'new' }));
+
+const getPostsReady = (posts, feedId) => {
+  const postsWithId = setId(posts, feedId);
+  const readyPosts = setPostStatus(postsWithId);
+  return readyPosts;
+};
+
+const makeURL = (userurl) => {
+  const proxy = 'https://hexlet-allorigins.herokuapp.com/get';
+  const url = new URL(proxy);
+  url.searchParams.set('disableCache', 'true');
+  url.searchParams.set('url', userurl);
+
+  return url;
+};
 
 const app = (i18n) => {
   const state = {
@@ -20,13 +41,22 @@ const app = (i18n) => {
     feeds: [],
     posts: [],
     messageType: '',
-    status: '',
+    validationStatus: '',
+    loadingStatus: '',
+    modalPost: '',
   };
+
+  const submitButton = document.getElementById('submitButton');
+  const input = document.getElementById('urlInput');
+  const form = document.getElementById('form');
+  const feeds = document.getElementById('feeds');
+  const buttonEN = document.getElementById('en');
+  const buttonRU = document.getElementById('ru');
 
   const watchedState = onChange(state, (path, value) => {
     switch (path) {
       case 'lng':
-        renderToggle(value);
+        renderToggle(value, buttonEN, buttonRU);
         break;
       case 'feeds':
         renderFeeds(value);
@@ -34,11 +64,16 @@ const app = (i18n) => {
       case 'posts':
         renderPosts(value, i18n);
         break;
-      case 'messageType':
-        renderMessage(value, i18n);
+      case 'loadingStatus':
+        renderInputGroup(value, submitButton, input);
+        renderMessage(state, i18n);
         break;
-      case 'status':
-        renderInputGroup(value);
+      case 'validationStatus':
+        renderInputGroup(value, submitButton, input);
+        renderMessage(state, i18n);
+        break;
+      case 'modalPost':
+        renderModal(value, i18n);
         break;
       default:
         break;
@@ -46,30 +81,25 @@ const app = (i18n) => {
   });
 
   const updateFeed = (feed) => {
-    axios.get(`https://hexlet-allorigins.herokuapp.com/get?disableCache=true&url=${feed.url}`)
+    axios.get(makeURL(feed.url))
       .then((response) => {
-        const { parsedPosts } = parse(response.data);
-
-        const newPosts = _.differenceBy(parsedPosts, watchedState.posts, 'postLink');
+        const { items } = parse(response.data);
+        const newPosts = _.differenceBy(items, watchedState.posts, 'link');
 
         if (newPosts.length > 0) {
-          watchedState.posts.push(...setId(newPosts, feed.feedId));
-          watchedState.status = 'updated';
+          const readyNewPosts = getPostsReady(newPosts, feed.feedId);
+          watchedState.posts.push(...readyNewPosts.reverse());
+          watchedState.loadingStatus = 'updated';
         }
       })
       .catch(() => {
-        watchedState.status = 'updatingFailed';
         watchedState.messageType = 'errorAuto';
+        watchedState.loadingStatus = 'updatingFailed';
       })
       .then(() => {
         setTimeout(updateFeed, 5000, feed);
       });
   };
-
-  const submitButton = document.getElementById('submitButton');
-  const input = document.getElementById('urlInput');
-  const buttonEN = document.getElementById('en');
-  const buttonRU = document.getElementById('ru');
 
   buttonEN.addEventListener('click', () => {
     i18n.changeLanguage('en');
@@ -82,9 +112,14 @@ const app = (i18n) => {
     submitButton.value = i18n.t('button');
   });
 
-  submitButton.addEventListener('click', () => {
-    watchedState.status = 'loading';
-    const userurl = input.value;
+  submitButton.addEventListener('click', (event) => {
+    event.preventDefault();
+    watchedState.messageType = '';
+    watchedState.validationStatus = null;
+    watchedState.loadingStatus = 'loading';
+
+    const formData = new FormData(form);
+    const userurl = formData.get('url');
 
     const URLvalidation = yup.string()
       .required('empty')
@@ -93,41 +128,56 @@ const app = (i18n) => {
 
     URLvalidation.validate(userurl)
       .then(() => {
-        axios.get(`https://hexlet-allorigins.herokuapp.com/get?disableCache=true&url=${userurl}`)
-          .then((response) => {
-            const { parsedFeed, parsedPosts } = parse(response.data);
-            const feedId = _.uniqueId();
+        watchedState.validationStatus = 'validationOK';
 
+        axios.get(makeURL(userurl))
+          .then((response) => {
+            const { parsedFeed, items } = parse(response.data);
+            const feedId = _.uniqueId();
             const newFeed = { ...parsedFeed, url: userurl, feedId };
+            const newPosts = getPostsReady(items, feedId);
 
             watchedState.feeds.push(newFeed);
-            watchedState.posts.push(...setId(parsedPosts, feedId).reverse());
-
+            watchedState.posts.push(...newPosts.reverse());
             watchedState.messageType = 'success';
-            watchedState.status = 'added';
+            watchedState.loadingStatus = 'loaded';
 
             setTimeout(updateFeed, 5000, newFeed);
           })
           .catch((err) => {
-            watchedState.status = 'loadingFailed';
             if (err.response || err.request) {
               watchedState.messageType = 'error';
             } else {
               watchedState.messageType = 'invalidRSS';
             }
+            watchedState.loadingStatus = 'loadingFailed';
           });
       })
       .catch((err) => {
-        watchedState.status = 'validationFailed';
         watchedState.messageType = err.message;
+        watchedState.validationStatus = 'validationFailed';
       });
+  });
+
+  feeds.addEventListener('click', (e) => {
+    if (e.target.type === 'button') {
+      const postId = e.target.previousSibling.getAttribute('id');
+      const postToPreview = state.posts.filter((post) => post.postId === postId)[0];
+      watchedState.modalPost = postToPreview;
+      watchedState.posts = watchedState.posts.map((post) => {
+        if (post.postId === postId) {
+          return { ...post, status: 'previewed' };
+        }
+        return post;
+      });
+    }
   });
 };
 
 export default () => {
   const i18nextInstance = i18next.createInstance();
 
-  i18nextInstance.init({
+  return i18nextInstance.init({
     lng: 'ru',
     debug: true,
     resources: {
