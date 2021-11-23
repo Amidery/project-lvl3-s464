@@ -1,8 +1,9 @@
 export default (data) => {
   const domparser = new DOMParser();
   const dom = domparser.parseFromString(data.contents, 'text/xml');
-  if (dom.getElementsByTagName('parsererror').length !== 0) {
-    throw new Error('Parse error');
+  const parsererror = dom.getElementsByTagName('parsererror');
+  if (parsererror.length !== 0) {
+    throw new Error(parsererror.textContent);
   }
 
   const feedTitle = dom.querySelector('channel > title').textContent;

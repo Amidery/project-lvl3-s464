@@ -18,13 +18,7 @@ const setId = (posts, feedId) => posts.map((post) => {
   return { ...post, postId, feedId };
 });
 
-const setPostStatus = (posts) => posts.map((post) => ({ ...post, status: 'new' }));
-
-const getPostsReady = (posts, feedId) => {
-  const postsWithId = setId(posts, feedId);
-  const readyPosts = setPostStatus(postsWithId);
-  return readyPosts;
-};
+const setPostsStatus = (posts) => posts.map((post) => ({ postId: post.postId, status: 'new' }));
 
 const makeURL = (userurl) => {
   const proxy = 'https://hexlet-allorigins.herokuapp.com/get';
@@ -40,40 +34,67 @@ const app = (i18n) => {
     lng: 'ru',
     feeds: [],
     posts: [],
-    messageType: '',
-    validationStatus: '',
-    loadingStatus: '',
-    modalPost: '',
+    postsStatus: [],
+    messageType: null,
+    validationStatus: null,
+    loadingStatus: null,
+    modalPost: null,
   };
 
   const submitButton = document.getElementById('submitButton');
   const input = document.getElementById('urlInput');
   const form = document.getElementById('form');
-  const feeds = document.getElementById('feeds');
+  const feedsContainer = document.getElementById('feeds');
+  const message = document.getElementById('message');
   const buttonEN = document.getElementById('en');
   const buttonRU = document.getElementById('ru');
+  const modal = document.getElementById('modal');
 
   const watchedState = onChange(state, (path, value) => {
     switch (path) {
       case 'lng':
-        renderToggle(value, buttonEN, buttonRU);
+        renderToggle(value, buttonEN, buttonRU, submitButton, i18n);
         break;
       case 'feeds':
-        renderFeeds(value);
+        renderFeeds(value, feedsContainer);
         break;
-      case 'posts':
-        renderPosts(value, i18n);
+      case 'postsStatus':
+        renderPosts(value, state.posts, i18n);
         break;
       case 'loadingStatus':
-        renderInputGroup(value, submitButton, input);
-        renderMessage(state, i18n);
+        if (value === 'loading') {
+          renderInputGroup(submitButton, input);
+          renderMessage(false, state, message, i18n);
+        }
+        if (value === 'loaded') {
+          renderInputGroup(submitButton, input, true);
+          renderMessage(true, state, message, i18n);
+        }
+        if (value === 'loadingFailed') {
+          renderInputGroup(submitButton, input, false);
+          renderMessage(false, state, message, i18n);
+        }
+        if (value === 'updated') {
+          renderInputGroup(submitButton, input, true);
+          renderMessage(true, state, message, i18n);
+        }
+        if (value === 'updatingFailed') {
+          renderInputGroup(submitButton, input, false);
+          renderMessage(false, state, message, i18n);
+        }
         break;
       case 'validationStatus':
-        renderInputGroup(value, submitButton, input);
-        renderMessage(state, i18n);
+        if (value === 'validationFailed') {
+          renderInputGroup(submitButton, input, false);
+          renderMessage(false, state, message, i18n);
+        }
+        if (value === 'validationOK') {
+          renderInputGroup(submitButton, input);
+          renderMessage(true, state, message, i18n);
+        }
         break;
       case 'modalPost':
-        renderModal(value, i18n);
+        renderModal(value, modal, i18n);
         break;
       default:
         break;
@@ -84,11 +105,12 @@ const app = (i18n) => {
     axios.get(makeURL(feed.url))
       .then((response) => {
         const { items } = parse(response.data);
-        const newPosts = _.differenceBy(items, watchedState.posts, 'link');
+        const newItems = _.differenceBy(items, watchedState.posts, 'link');
 
-        if (newPosts.length > 0) {
-          const readyNewPosts = getPostsReady(newPosts, feed.feedId);
-          watchedState.posts.push(...readyNewPosts.reverse());
+        if (newItems.length > 0) {
+          const newPosts = setId(newItems, feed.feedId);
+          watchedState.posts.push(...newPosts.reverse());
+          watchedState.postsStatus.push(...setPostsStatus(newPosts));
           watchedState.loadingStatus = 'updated';
         }
       })
@@ -104,17 +126,15 @@ const app = (i18n) => {
   buttonEN.addEventListener('click', () => {
     i18n.changeLanguage('en');
     watchedState.lng = 'en';
-    submitButton.value = i18n.t('button');
   });
   buttonRU.addEventListener('click', () => {
     i18n.changeLanguage('ru');
     watchedState.lng = 'ru';
-    submitButton.value = i18n.t('button');
   });
 
   submitButton.addEventListener('click', (event) => {
     event.preventDefault();
-    watchedState.messageType = '';
+    watchedState.messageType = null;
     watchedState.validationStatus = null;
     watchedState.loadingStatus = 'loading';
 
@@ -135,10 +155,11 @@ const app = (i18n) => {
             const { parsedFeed, items } = parse(response.data);
             const feedId = _.uniqueId();
             const newFeed = { ...parsedFeed, url: userurl, feedId };
-            const newPosts = getPostsReady(items, feedId);
-
+            const newPosts = setId(items, feedId);
             watchedState.feeds.push(newFeed);
             watchedState.posts.push(...newPosts.reverse());
+            watchedState.postsStatus.push(...setPostsStatus(newPosts));
+
             watchedState.messageType = 'success';
             watchedState.loadingStatus = 'loaded';
 
@@ -159,12 +180,12 @@ const app = (i18n) => {
       });
   });
 
-  feeds.addEventListener('click', (e) => {
+  feedsContainer.addEventListener('click', (e) => {
     if (e.target.type === 'button') {
       const postId = e.target.previousSibling.getAttribute('id');
-      const postToPreview = state.posts.filter((post) => post.postId === postId)[0];
+      const postToPreview = state.posts.find((post) => post.postId === postId);
       watchedState.modalPost = postToPreview;
-      watchedState.posts = watchedState.posts.map((post) => {
+      watchedState.postsStatus = watchedState.postsStatus.map((post) => {
         if (post.postId === postId) {
           return { ...post, status: 'previewed' };
         }

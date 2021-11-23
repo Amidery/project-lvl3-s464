@@ -1,4 +1,6 @@
-const renderToggle = (value, buttonEN, buttonRU) => {
+const renderToggle = (value, buttonEN, buttonRU, submitButton, i18next) => {
+  submitButton.value = i18next.t('button');
+
   if (value === 'ru') {
     buttonRU.classList.remove('btn-secondary');
     buttonRU.classList.add('btn-warning');
@@ -12,27 +14,26 @@ const renderToggle = (value, buttonEN, buttonRU) => {
   }
 };
 
-const renderInputGroup = (value, submitButton, input) => {
-  if (value === 'loading' || value === 'validationOK') {
-    input.setAttribute('readonly', true);
-    submitButton.setAttribute('disabled', true);
-  } else if (value === 'loaded' || value === 'updated') {
+const renderInputGroup = (submitButton, input, status = null) => {
+  input.setAttribute('readonly', true);
+  submitButton.setAttribute('disabled', true);
+
+  if (status) {
     input.value = ''; /* eslint no-param-reassign: "error" */
     input.classList.remove('border-danger');
     input.removeAttribute('readonly');
     submitButton.removeAttribute('disabled');
-  } else if (value !== null) {
+  } else if (status === false) {
     input.classList.add('border-danger');
     input.removeAttribute('readonly');
     submitButton.removeAttribute('disabled');
   }
 };
 
-const renderMessage = (state, i18next) => {
-  const message = document.getElementById('message');
+const renderMessage = (status, state, message, i18next) => {
   message.textContent = `${i18next.t(state.messageType)}`;
 
-  if (state.loadingStatus !== 'loadingFailed' && state.validationStatus !== 'validationFailed' && state.loadingStatus !== 'updatingFailed') {
+  if (status) {
     message.classList.remove('text-danger', 'bg-white');
     message.classList.add('text-success', 'bg-white');
   } else {
@@ -41,8 +42,7 @@ const renderMessage = (state, i18next) => {
   }
 };
 
-const renderFeeds = (feeds) => {
-  const feedsContainer = document.getElementById('feeds');
+const renderFeeds = (feeds, feedsContainer) => {
   feedsContainer.innerHTML = '';
 
   feeds.forEach((feed) => {
@@ -68,24 +68,22 @@ const renderFeeds = (feeds) => {
   });
 };
 
-const renderModal = (post, i18next) => {
-  const modal = document.getElementById('modal');
-
+const renderModal = (post, modal, i18next) => {
   const modalTitle = modal.querySelector('.modal-title');
   const modalBodyInput = modal.querySelector('.modal-body');
   modalTitle.textContent = post.title;
   modalBodyInput.textContent = post.description;
 
-  const readMoreModalbutton = document.getElementById('readMoreModal');
-  const closeModalbutton = document.getElementById('closeModal');
+  const readMoreModalbutton = modal.querySelector('#readMoreModal');
+  const closeModalbutton = modal.querySelector('#closeModal');
   readMoreModalbutton.textContent = i18next.t('readMore');
   readMoreModalbutton.setAttribute('onclick', `location.href='${post.link}'`);
   closeModalbutton.textContent = i18next.t('closeModal');
 };
 
-const renderPosts = (posts, i18next) => {
-  const postsLists = document.querySelectorAll('#posts');
-  postsLists.forEach((list) => { list.innerHTML = ''; });
+const renderPosts = (postsStatus, posts, i18next) => {
+  const postsContainers = document.querySelectorAll('#posts');
+  postsContainers.forEach((list) => { list.innerHTML = ''; });
 
   posts.forEach((post) => {
     const newPost = document.createElement('a');
@@ -93,11 +91,10 @@ const renderPosts = (posts, i18next) => {
       title,
       link,
       postId,
-      status,
       feedId,
     } = post;
 
-    newPost.setAttribute('href', link);
+    const { status } = postsStatus.find((item) => item.postId === postId);
 
     if (status === 'new') {
       newPost.classList.add('font-weight-bold', 'fw-bold');
@@ -106,6 +103,7 @@ const renderPosts = (posts, i18next) => {
       newPost.classList.add('font-weight-normal', 'fw-normal');
     }
 
+    newPost.setAttribute('href', link);
     newPost.textContent = title;
     newPost.id = postId;
 
