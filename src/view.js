@@ -30,14 +30,13 @@ const renderInputGroup = (submitButton, input, status = null) => {
   }
 };
 
-const renderMessage = (status, state, message, i18next) => {
+const renderMessage = (state, message, i18next, status = null) => {
   message.textContent = `${i18next.t(state.messageType)}`;
+  message.classList.remove('text-danger', 'bg-white', 'text-success');
 
   if (status) {
-    message.classList.remove('text-danger', 'bg-white');
     message.classList.add('text-success', 'bg-white');
-  } else {
-    message.classList.remove('text-success', 'bg-white');
+  } else if (status === false) {
     message.classList.add('text-danger', 'bg-white');
   }
 };

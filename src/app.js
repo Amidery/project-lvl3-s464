@@ -36,8 +36,8 @@ const app = (i18n) => {
     posts: [],
     postsStatus: [],
     messageType: null,
-    validationStatus: null,
-    loadingStatus: null,
+    validationStatus: 'initial',
+    loadingStatus: 'initial',
     modalPost: null,
   };
 
@@ -62,35 +62,49 @@ const app = (i18n) => {
         renderPosts(value, state.posts, i18n);
         break;
       case 'loadingStatus':
-        if (value === 'loading') {
-          renderInputGroup(submitButton, input);
-          renderMessage(false, state, message, i18n);
-        }
-        if (value === 'loaded') {
-          renderInputGroup(submitButton, input, true);
-          renderMessage(true, state, message, i18n);
-        }
-        if (value === 'loadingFailed') {
-          renderInputGroup(submitButton, input, false);
-          renderMessage(false, state, message, i18n);
-        }
-        if (value === 'updated') {
-          renderInputGroup(submitButton, input, true);
-          renderMessage(true, state, message, i18n);
-        }
-        if (value === 'updatingFailed') {
-          renderInputGroup(submitButton, input, false);
-          renderMessage(false, state, message, i18n);
+        switch (value) {
+          case 'initial':
+            renderInputGroup(submitButton, input, true);
+            renderMessage(state, message, i18n);
+            break;
+          case 'loading':
+            renderInputGroup(submitButton, input);
+            renderMessage(state, message, i18n, false);
+            break;
+          case 'loaded':
+            renderInputGroup(submitButton, input, true);
+            renderMessage(state, message, i18n, true);
+            break;
+          case 'loadingFailed':
+            renderInputGroup(submitButton, input, false);
+            renderMessage(state, message, i18n, false);
+            break;
+          case 'updated':
+            renderInputGroup(submitButton, input, true);
+            renderMessage(state, message, i18n, true);
+            break;
+          case 'updatingFailed':
+            renderInputGroup(submitButton, input, false);
+            renderMessage(state, message, i18n, false);
+            break;
+          default:
+            break;
         }
         break;
       case 'validationStatus':
-        if (value === 'validationFailed') {
-          renderInputGroup(submitButton, input, false);
-          renderMessage(false, state, message, i18n);
-        }
-        if (value === 'validationOK') {
-          renderInputGroup(submitButton, input);
-          renderMessage(true, state, message, i18n);
+        switch (value) {
+          case 'initial':
+            renderMessage(state, message, i18n);
+            break;
+          case 'validationFailed':
+            renderInputGroup(submitButton, input, false);
+            renderMessage(state, message, i18n, false);
+            break;
+          case 'validationOK':
+            renderInputGroup(submitButton, input);
+            break;
+          default:
+            break;
         }
         break;
       case 'modalPost':
@@ -135,7 +149,7 @@ const app = (i18n) => {
   submitButton.addEventListener('click', (event) => {
     event.preventDefault();
     watchedState.messageType = null;
-    watchedState.validationStatus = null;
+    watchedState.validationStatus = 'initial';
     watchedState.loadingStatus = 'loading';
 
     const formData = new FormData(form);
@@ -150,33 +164,33 @@ const app = (i18n) => {
       .then(() => {
         watchedState.validationStatus = 'validationOK';
 
-        axios.get(makeURL(userurl))
-          .then((response) => {
-            const { parsedFeed, items } = parse(response.data);
-            const feedId = _.uniqueId();
-            const newFeed = { ...parsedFeed, url: userurl, feedId };
-            const newPosts = setId(items, feedId);
-            watchedState.feeds.push(newFeed);
-            watchedState.posts.push(...newPosts.reverse());
-            watchedState.postsStatus.push(...setPostsStatus(newPosts));
+        return axios.get(makeURL(userurl));
+      })
+      .then((response) => {
+        const { parsedFeed, items } = parse(response.data);
+        const feedId = _.uniqueId();
+        const newFeed = { ...parsedFeed, url: userurl, feedId };
+        const newPosts = setId(items, feedId);
+        watchedState.feeds.push(newFeed);
+        watchedState.posts.push(...newPosts.reverse());
+        watchedState.postsStatus.push(...setPostsStatus(newPosts));
 
-            watchedState.messageType = 'success';
-            watchedState.loadingStatus = 'loaded';
+        watchedState.messageType = 'success';
+        watchedState.loadingStatus = 'loaded';
 
-            setTimeout(updateFeed, 5000, newFeed);
-          })
-          .catch((err) => {
-            if (err.response || err.request) {
-              watchedState.messageType = 'error';
-            } else {
-              watchedState.messageType = 'invalidRSS';
-            }
-            watchedState.loadingStatus = 'loadingFailed';
-          });
+        setTimeout(updateFeed, 5000, newFeed);
       })
       .catch((err) => {
-        watchedState.messageType = err.message;
-        watchedState.validationStatus = 'validationFailed';
+        if (err.isAxiosError) {
+          watchedState.messageType = 'error';
+          watchedState.loadingStatus = 'loadingFailed';
+        } else if (err.isParseError) {
+          watchedState.messageType = 'invalidRSS';
+          watchedState.loadingStatus = 'loadingFailed';
+        } else if (err.message) {
+          watchedState.messageType = err.message;
+          watchedState.validationStatus = 'validationFailed';
+        }
       });
   });
 
